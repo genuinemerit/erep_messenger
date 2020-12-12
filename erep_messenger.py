@@ -7,6 +7,11 @@
 :modules:   ./requirements.txt
 :config:    ./db/emsg.conf
 :log:       ./db/emsg.log  or (Linux only) /dev/shm/emsg.log
+
+@DEV -
+        See: https://github.com/eeriks/erepublik (GitHub)
+        and: https://libraries.io/pypi/eRepublik (PyPi)
+        for more up-to-date eRepublik-related Python3 code
 """
 # standard
 import fnmatch
@@ -25,7 +30,7 @@ from tkinter import messagebox, ttk
 from tornado.options import define, options
 # local
 from emsg_logger import EmsgLogger
-from emsg_encrypt import EmsgEncrypt
+# from emsg_encrypt import EmsgEncrypt - not used yet
 
 class ErepMessenger(object):
     """
@@ -44,8 +49,6 @@ class ErepMessenger(object):
         self.erep_rqst = requests.Session()
         self.erep_rqst.headers = None
         self.erep_csrf_token = None
-        # self.emsg_rqst = requests.Session()
-        # self.emsg_rqst.headers = None
         self.__set_erep_headers()
 
         self.user_profile = None
@@ -80,7 +83,7 @@ class ErepMessenger(object):
         """ Get login info and other settings from config file.
             Config file should be in same dir as python script.
 
-            :Return: {DotMap} dict of config name.values
+            :Return: {DotMap?} dict of config name.values using tornado.options
         """
         ## Get config file
         app_path = path.abspath(path.realpath(__file__))
@@ -172,11 +175,8 @@ class ErepMessenger(object):
         """
         Set request headers for eRepublik calls.
 
-        @DEV - If not using US English, probably want to modify the Accept-Language values
-        @DEV - Should User-Agent list be updated?
-        @DEV - User-Agent "eMes/MO" seems odd. Not sure what that is.
-        See: https://github.com/eeriks/erepublik (GitHub)
-        and: https://libraries.io/pypi/eRepublik (PyPi)
+        @DEV - If not using US English, modify the Accept-Language values
+        @DEV - User-Agent list should probably get updated
 
         :Set:
           - {dict} request headers for login and logout connection to eRepublik
@@ -187,15 +187,6 @@ class ErepMessenger(object):
             'Accept-Language': 'en-US,en;q=0.8',
             'Connection': 'keep-alive',
             'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Ubuntu Chromium/31.0.1650.63 Chrome/31.0.1650.63 Safari/537.36'}
-
-        """
-        message_hdrs = {
-            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8', 'Accept-Encoding': 'gzip,deflate,sdch',
-            'Accept-Language': 'en-US,en;q=0.8',
-            'Connection': 'keep-alive',
-            'User-Agent': 'eMes/MO'}
-        self.emsg_rqst.headers = message_hdrs
-        """
 
     def __get_user_profile(self):
         """ Retrieve profile for user from eRepublik.
@@ -226,8 +217,7 @@ class ErepMessenger(object):
         """
         id_list_ix = self.id_file_list.curselection()[0]
         id_list = self.listdir_files[id_list_ix]
-        with open(path.abspath(path.join(self.app_dir, "db/{}".format(id_list))),
-                  "r") as f:
+        with open(path.abspath(path.join(self.app_dir, "db/{}".format(id_list))), "r") as f:
             id_list_data = f.read()
         self.clear_list()
         self.id_list.insert(tk.INSERT, id_list_data)
@@ -237,7 +227,8 @@ class ErepMessenger(object):
     def load_list_dialog(self):
         """
         Populate the profile ids list from a ".list" file stored in the db directory
-        @DEV - Eventually replace files with an encrypted sqlite database
+
+        @DEV - Replace all files with an encrypted sqlite database
         """
         if self.win_load is None:
             self.win_load = tk.Toplevel()
@@ -247,8 +238,6 @@ class ErepMessenger(object):
             load_frame.grid(row=4, column=2)
             ttk.Label(load_frame, text=self.opt.w_cmd_load_list).grid(row=0, column=1)
             ttk.Label(load_frame, text=self.opt.s_file_name).grid(row=1, column=1, sticky=tk.W)
-            # @DEV - Had trouble getting scroll bars to work as desired
-            #   so omitting them for now
             self.id_file_list = tk.Listbox(load_frame, selectmode=tk.SINGLE, width=40)
             self.id_file_list.grid(row=2, column=1)
             ttk.Button(load_frame, text=self.opt.s_cancel,
@@ -269,15 +258,15 @@ class ErepMessenger(object):
         """
         Save the current list of Profile IDs as a file
 
-        @DEV: Note that for pulling text from tk Entry widgets,
-               we either define a "textvariable" or just do a .get() with no indexes
+        @DEV: Note: To pull text from tk Entry widgets,
         """
         self.current_file_name = self.id_list_file_entry.get()
         self.current_file_name = self.current_file_name.replace(" ", "_").replace("\n", "").replace("'", "_").replace(".list", "").replace(".", "_")
         self.current_file_name = "{}.list".format(self.current_file_name.lower())
         file_path = path.abspath(path.join(self.app_dir, "db/{}".format(self.current_file_name)))
+        list_data = self.clean_list()
         with open(file_path, "w") as f:
-            f.write(self.id_list.get(1.0, tk.END))
+            f.write(list_data)
         if self.logme:
             self.LOG.write_log('INFO', "Citizens ID .list saved at: {}".format(file_path))
 
@@ -287,9 +276,8 @@ class ErepMessenger(object):
         """
         Dialog window for saving the current list of Profile IDs as a file
 
-        @DEV - Run edits / clean-ups on file name and contents once I have them working
         @DEV - "Toplevel" is tk-speak for creating a new window under the root app
-        @DEV - After creating it once, we "withdraw" it to close and then "deiconify" to restore
+        @DEV - After creating it once, we "withdraw" to close and then "deiconify" to restore it
         """
         if self.win_save is None:
             self.win_save = tk.Toplevel()
@@ -314,7 +302,8 @@ class ErepMessenger(object):
         Login to eRepublik
         This script accepts login credentials only from a configuration file.
 
-        @DEV - Eventually move login credentials to an encrypted sqllite database.
+        @DEV - Store login credentials (and log locations) to an encrypted sqllite database.
+        @DEV - Provide a GUI for managing connection credentials
 
         :Set: {string} CSRF token assigned after a valid login
         """
@@ -349,7 +338,7 @@ class ErepMessenger(object):
     def disconnect(self):
         """ Logout from eRepublik
         Totally guessing here.
-        We get a 302 response here, which is good. But not sure if it is really terminating the user session.
+        A 302 response here is good. But not sure if it is really terminating the user session.
         """
         formdata = {'citizen_email': self.opt.erep_mail_id,
                     'citizen_password': self.opt.erep_pwd,
@@ -366,7 +355,10 @@ class ErepMessenger(object):
             self.status_text.config(text = self.opt.w_txt_disconnected)
 
     def exit_emsg(self):
-        """ Quit the erep_messenger app """
+        """
+        Quit the erep_messenger app
+        Logout if not already disconnected
+        """
         if self.erep_csrf_token is not None:
             self.disconnect()
         self.win_emsg.quit()
@@ -382,6 +374,9 @@ class ErepMessenger(object):
     def clean_list(self):
         """
         Clean up the Profile ID list
+
+        @DEV - To get text from an Entry widget define a "textvariable" param or do .get() with no indexes
+        @DEV - To get text from an Text widget provide a start (word.char) and end (e.g. "tk.END") index
 
         :Return: {string} scrubbed version of the Profile ID List data or False
         """
@@ -503,11 +498,10 @@ class ErepMessenger(object):
         """
         Send message to one recipient
 
-        Dang! --> "The challenge solution was incorrect"
-
-        "sitekey":"6Lf490AUAAAAAIqP0H7DFfXF5tva00u93wxAQ--h"
-
-        See: https://stackoverflow.com/questions/30647113/not-a-robot-recaptcha-without-a-form-but-ajax-instead
+        @DEV -
+            Doesn't work due to captcha...
+            "The challenge solution was incorrect"
+            "sitekey":"6Lf490AUAAAAAIqP0H7DFfXF5tva00u93wxAQ--h"
 
         :Args: {string} citizen profile ID - tab - citizen name
         """
