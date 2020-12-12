@@ -1,0 +1,24 @@
+## Non-standard Python3 PyPi modules required for ErepMessenger app
+bs4
+cryptography
+pillow # or PIL
+pprint
+requests
+secrets
+tk
+tornado
+
+## Standard libraries used:
+# fnmatch
+# json
+# logging
+# os
+# re
+# time
+
+# Custom classes:
+## from emsg_constants import EmsgConstants
+## from emsg_logger import EmsgLogger
+## from emsg_functions import EmsgFunctions
+## from emsg_encrypt import EmsgEncrypt
+## from erep_messenger import ErepMessenger
