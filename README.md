@@ -11,7 +11,7 @@ Seems to "work" as designed, except that eRep now uses Captcha checks for sendin
 
 ## package and environment
 
-- Not packaged up. No setup.py defined.
+- Not packaged up. No setup.py defined.  No wheel.
 - Requires python3.
 - See requirements.txt for required modules.
 
